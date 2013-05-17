@@ -96,9 +96,12 @@ unichar const invalidCommand		= '*';
 @end
 
 
-@implementation PocketSVG
+@implementation PocketSVG {
+    BOOL _firstPointSetted;
+}
 
 @synthesize bezier;
+@synthesize lastPoint;
 
 
 - (id)initFromSVGFileNamed:(NSString *)nameOfSVG{
@@ -330,6 +333,8 @@ unichar const invalidCommand		= '*';
 
 - (void)reset
 {
+    _firstPointSetted = NO;
+    _firstPoint = CGPointZero;
 	lastPoint = CGPointMake(0, 0);
 	validLastControlPoint = NO;
 }
@@ -349,6 +354,10 @@ unichar const invalidCommand		= '*';
 		lastPoint = CGPointMake(x, y);
 		if (first) {
 			[bezier moveToPoint:lastPoint];
+            if (!_firstPointSetted) {
+                _firstPoint = lastPoint;
+                _firstPointSetted = YES;
+            }
 			first = NO;
 		}
 		else {

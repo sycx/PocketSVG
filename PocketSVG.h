@@ -51,6 +51,11 @@
 #endif
 
 - (id)initFromSVGFileNamed:(NSString *)nameOfSVG;
+- (id)initFromSVGPathNodeDAttr:(NSString *)attr;
+
+@property (nonatomic, assign) CGPoint firstPoint;
+@property (nonatomic, assign) CGPoint lastPoint;
+
 
 #if !TARGET_OS_IPHONE
 + (CGPathRef)getCGPathFromNSBezierPath:(NSBezierPath *)quartzPath;
