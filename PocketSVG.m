@@ -81,11 +81,8 @@ unichar const invalidCommand		= '*';
 @interface PocketSVG ()
 
 - (NSMutableArray *)parsePath:(NSString *)attr;
-#if TARGET_OS_IPHONE
+
 - (UIBezierPath *) generateBezier:(NSArray *)tokens;
-#else
-- (NSBezierPath *) generateBezier:(NSArray *)tokens;
-#endif
 
 - (void)reset;
 - (void)appendSVGMCommand:(Token *)token;
@@ -265,15 +262,9 @@ unichar const invalidCommand		= '*';
 	return tokens;
 }
 
-#if TARGET_OS_IPHONE
 - (UIBezierPath *)generateBezier:(NSArray *)inTokens
 {
 	bezier = [[UIBezierPath alloc] init];
-#else
-- (NSBezierPath *)generateBezier:(NSArray *)inTokens
-{
-    bezier = [[NSBezierPath alloc] init];
-#endif
 
 	[self reset];
 	for (Token *thisToken in inTokens) {
@@ -361,11 +352,7 @@ unichar const invalidCommand		= '*';
 			first = NO;
 		}
 		else {
-#if TARGET_OS_IPHONE
 			[bezier addLineToPoint:lastPoint];
-#else
-			[bezier lineToPoint:NSPointFromCGPoint(lastPoint)];
-#endif
 		}
 		index++;
 	}
@@ -407,11 +394,8 @@ unichar const invalidCommand		= '*';
 				return;
 		}
 		lastPoint = CGPointMake(x, y);
-#if TARGET_OS_IPHONE
 		[bezier addLineToPoint:lastPoint];
-#else
-		[bezier lineToPoint:NSPointFromCGPoint(lastPoint)];
-#endif
+
 		index++;
 	}
 }
@@ -427,15 +411,9 @@ unichar const invalidCommand		= '*';
 		CGFloat x  = [token parameter:index++] + ([token command] == 'c' ? lastPoint.x : 0);
 		CGFloat y  = [token parameter:index++] + ([token command] == 'c' ? lastPoint.y : 0);
 		lastPoint = CGPointMake(x, y);
-#if TARGET_OS_IPHONE
-		[bezier addCurveToPoint:lastPoint 
+		[bezier addCurveToPoint:lastPoint
 				  controlPoint1:CGPointMake(x1,y1) 
 				  controlPoint2:CGPointMake(x2, y2)];
-#else
-		[bezier curveToPoint:NSPointFromCGPoint(lastPoint)
-			   controlPoint1:NSPointFromCGPoint(CGPointMake(x1,y1))
-			   controlPoint2:NSPointFromCGPoint(CGPointMake(x2, y2))];
-#endif
         lastControlPoint = CGPointMake(x2, y2);
 		validLastControlPoint = YES;
 	}
@@ -458,15 +436,9 @@ unichar const invalidCommand		= '*';
 		CGFloat x  = [token parameter:index++] + ([token command] == 's' ? lastPoint.x : 0);
 		CGFloat y  = [token parameter:index++] + ([token command] == 's' ? lastPoint.y : 0);
 		lastPoint = CGPointMake(x, y);
-#if TARGET_OS_IPHONE
-		[bezier addCurveToPoint:lastPoint 
+		[bezier addCurveToPoint:lastPoint
 				  controlPoint1:CGPointMake(x1,y1)
 				  controlPoint2:CGPointMake(x2, y2)];
-#else
-		[bezier curveToPoint:NSPointFromCGPoint(lastPoint)
-			   controlPoint1:NSPointFromCGPoint(CGPointMake(x1,y1)) 
-			   controlPoint2:NSPointFromCGPoint(CGPointMake(x2, y2))];
-#endif
 		lastControlPoint = CGPointMake(x2, y2);
 		validLastControlPoint = YES;
 	}
@@ -474,69 +446,5 @@ unichar const invalidCommand		= '*';
 		NSLog(@"*** PocketSVG Error: Insufficient parameters for S command");
 	}
 }
-    
-#if !TARGET_OS_IPHONE
-//NSBezierPaths don't have a CGPath property, so we need to fetch their CGPath manually.
-//This comes from the "Creating a CGPathRef From an NSBezierPath Object" section of
-//https://developer.apple.com/library/mac/#documentation/cocoa/Conceptual/CocoaDrawingGuide/Paths/Paths.html
-
-+ (CGPathRef)getCGPathFromNSBezierPath:(NSBezierPath *)quartzPath
-{
-    int i;
-    NSInteger numElements;
-    // Need to begin a path here.
-    CGPathRef           immutablePath = NULL;
-    
-    // Then draw the path elements.
-    numElements = [quartzPath elementCount];
-    if (numElements > 0)
-    {
-        CGMutablePathRef    path = CGPathCreateMutable();
-        NSPoint             points[3];
-        BOOL                didClosePath = YES;
-        
-        for (i = 0; i < numElements; i++)
-        {
-            switch ([quartzPath elementAtIndex:i associatedPoints:points])
-            {
-                case NSMoveToBezierPathElement:
-                    CGPathMoveToPoint(path, NULL, points[0].x, points[0].y);
-                    break;
-                    
-                case NSLineToBezierPathElement:
-                    CGPathAddLineToPoint(path, NULL, points[0].x, points[0].y);
-                    didClosePath = NO;
-                    break;
-                    
-                case NSCurveToBezierPathElement:
-                    CGPathAddCurveToPoint(path, NULL, points[0].x, points[0].y,
-                                          points[1].x, points[1].y,
-                                          points[2].x, points[2].y);
-                    didClosePath = NO;
-                    break;
-                    
-                case NSClosePathBezierPathElement:
-                    CGPathCloseSubpath(path);
-                    didClosePath = YES;
-                    break;
-            }
-        }
-        
-        immutablePath = CGPathCreateCopy(path);
-        CGPathRelease(path);
-    }
-    
-    //TODO:
-    //At this stage, immutablePath is upside down. I'm currently flipping it back using CGAffineTransforms,
-    //the path rotates fine, but its positioning needs to be fixed.
-    
-    CGAffineTransform flip = CGAffineTransformMake(1, 0, 0, -1, 0, CGPathGetBoundingBox(immutablePath).size.height);
-    CGAffineTransform moveDown = CGAffineTransformMakeTranslation(0, -100);
-    CGAffineTransform trans = CGAffineTransformConcat(flip, moveDown);
-    CGPathRef betterPath = CGPathCreateCopyByTransformingPath(immutablePath, &trans);
-    return betterPath;
-}
-#endif
-
 
 @end
