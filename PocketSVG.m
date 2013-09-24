@@ -264,7 +264,7 @@ unichar const invalidCommand		= '*';
 
 - (UIBezierPath *)generateBezier:(NSArray *)inTokens
 {
-	bezier = [[UIBezierPath alloc] init];
+	bezier = [UIBezierPath bezierPath];
 
 	[self reset];
 	for (Token *thisToken in inTokens) {
